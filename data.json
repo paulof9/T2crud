@@ -1,13 +1,21 @@
 {
   "posts": [
     {
-      "id": 1,
-      "author": "Teste",
-      "subject": "Post de Teste",
-      "message": "Esta é uma mensagem de teste para verificar se está funcionando",
-      "createdAt": "2026-02-06T15:30:00.000Z",
+      "id": 3,
+      "author": "Paulo",
+      "subject": "Teste",
+      "message": "Testando se funciona agora",
+      "createdAt": "2026-02-06T18:33:22.520Z",
+      "liked": false
+    },
+    {
+      "id": 4,
+      "author": "paulo",
+      "subject": "teste",
+      "message": "oioio",
+      "createdAt": "2026-02-06T18:34:35.229Z",
       "liked": false
     }
   ],
-  "ultimoId": 1
+  "ultimoId": 4
 }

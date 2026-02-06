@@ -31,7 +31,6 @@ function carregarDados() {
 function salvarDados(dados) {
     try {
         fs.writeFileSync(arquivo, JSON.stringify(dados, null, 2));
-        console.log('Dados salvos com sucesso:', dados);
         return true;
     } catch (error) {
         console.error('Erro ao salvar:', error);
@@ -153,36 +152,10 @@ app.delete('/api/posts/:id', (req, res) => {
     }
 });
 
-// GET /api/export - exportar todos os dados em JSON
-app.get('/api/export', async (req, res) => {
-    try {
-        const data = await loadData();
-        
-        // adicionar estatísticas
-        const exportData = {
-            ...data,
-            statistics: {
-                totalPosts: data.posts.length,
-                likedPosts: data.posts.filter(p => p.liked).length,
-                uniqueAuthors: [...new Set(data.posts.map(p => p.author))].length,
-                exportedAt: new Date().toISOString()
-            }
-        };
-        
-        // headers para download
-        res.setHeader('Content-Disposition', `attachment; filename="posts-export-${new Date().toISOString().split('T')[0]}.json"`);
-        res.setHeader('Content-Type', 'application/json');
-        
-        res.json(exportData);
-        console.log('Dados exportados com sucesso');
-        
-    } catch (error) {
-        console.error('Erro ao exportar dados:', error);
-        res.status(500).json({
-            error: 'Erro interno do servidor',
-            message: error.message
-        });
-    }
+// GET /api/export - exportar dados
+app.get('/api/export', (req, res) => {
+    const dados = carregarDados();
+    res.json(dados);
 });
 
 
