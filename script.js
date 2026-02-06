@@ -1,0 +1,446 @@
+// Variáveis globais
+let posts = [];
+let currentDeleteId = null;
+let deleteModal = null;
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    initializeApp();
+});
+
+function initializeApp() {
+    // Inicializar modal
+    deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    
+    // Event listeners
+    setupEventListeners();
+    
+    // Carregar posts iniciais
+    loadPosts();
+    
+    // Auto-refresh a cada 30 segundos
+    setInterval(loadPosts, 30000);
+}
+
+function setupEventListeners() {
+    // Formulário de nova postagem
+    document.getElementById('postForm').addEventListener('submit', handleSubmitPost);
+    
+    // Botões de filtro
+    document.getElementById('applyFilters').addEventListener('click', applyFilters);
+    document.getElementById('clearFilters').addEventListener('click', clearFilters);
+    
+    // Botões de ação
+    document.getElementById('refreshBtn').addEventListener('click', loadPosts);
+    document.getElementById('exportBtn').addEventListener('click', exportData);
+    document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
+    
+    // Filtros em tempo real
+    document.getElementById('filterAuthor').addEventListener('input', debounce(applyFilters, 300));
+    document.getElementById('filterDate').addEventListener('change', applyFilters);
+    document.getElementById('filterTime').addEventListener('change', applyFilters);
+}
+
+// Funções principais
+
+async function loadPosts() {
+    try {
+        showLoading(true);
+        const response = await fetch(getApiUrl('posts'));
+        
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        
+        posts = await response.json();
+        displayPosts(posts);
+        updatePostCount(posts.length);
+        showAlert('Posts carregados com sucesso!', 'success', 3000);
+    } catch (error) {
+        console.error('Erro ao carregar posts:', error);
+        showAlert('Erro ao carregar posts: ' + error.message, 'danger');
+        displayNoPosts();
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function handleSubmitPost(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const postData = {
+        author: document.getElementById('author').value.trim(),
+        subject: document.getElementById('subject').value.trim(),
+        message: document.getElementById('message').value.trim()
+    };
+    
+    // Validação
+    if (!postData.author || !postData.subject || !postData.message) {
+        showAlert('Preencha todos os campos!', 'danger');
+        return;
+    }
+    
+    try {
+        showLoading(true);
+        const response = await fetch(getApiUrl('posts'), {
+            method: 'POST',
+            headers: defaultHeaders,
+            body: JSON.stringify(postData)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        
+        const newPost = await response.json();
+        
+        // Limpar formulário
+        document.getElementById('postForm').reset();
+        
+        // Recarregar posts
+        await loadPosts();
+        
+        showAlert('Postagem criada com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao criar post:', error);
+        showAlert('Erro ao criar postagem: ' + error.message, 'danger');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function toggleLike(postId) {
+    try {
+        const response = await fetch(`${getApiUrl('posts')}/${postId}/like`, {
+            method: 'PATCH',
+            headers: defaultHeaders
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        
+        const updatedPost = await response.json();
+        
+        // Atualizar post local
+        const postIndex = posts.findIndex(p => p.id === postId);
+        if (postIndex !== -1) {
+            posts[postIndex] = updatedPost;
+            displayPosts(posts);
+        }
+        
+        showAlert(`Post ${updatedPost.liked ? 'curtido' : 'descurtido'}!`, 'info', 2000);
+        
+    } catch (error) {
+        console.error('Erro ao curtir post:', error);
+        showAlert('Erro ao curtir post: ' + error.message, 'danger');
+    }
+}
+
+function prepareDelete(postId) {
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+    
+    currentDeleteId = postId;
+    
+    // Mostrar preview no modal
+    document.getElementById('postPreview').innerHTML = `
+        <strong>Autor:</strong> ${post.author}<br>
+        <strong>Assunto:</strong> ${post.subject}<br>
+        <strong>Mensagem:</strong> ${post.message}<br>
+        <small class="text-muted">Postado em: ${formatDateTime(post.createdAt)}</small>
+    `;
+    
+    deleteModal.show();
+}
+
+async function confirmDelete() {
+    if (!currentDeleteId) return;
+    
+    try {
+        showLoading(true);
+        const response = await fetch(`${getApiUrl('posts')}/${currentDeleteId}`, {
+            method: 'DELETE',
+            headers: defaultHeaders
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        
+        deleteModal.hide();
+        currentDeleteId = null;
+        
+        // Recarregar posts
+        await loadPosts();
+        
+        showAlert('Postagem excluída com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao excluir post:', error);
+        showAlert('Erro ao excluir postagem: ' + error.message, 'danger');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function applyFilters() {
+    const filterAuthor = document.getElementById('filterAuthor').value.toLowerCase().trim();
+    const filterDate = document.getElementById('filterDate').value;
+    const filterTime = document.getElementById('filterTime').value;
+    
+    let filteredPosts = [...posts];
+    
+    // Filtro por autor
+    if (filterAuthor) {
+        filteredPosts = filteredPosts.filter(post => 
+            post.author.toLowerCase().includes(filterAuthor)
+        );
+    }
+    
+    // Filtro por data
+    if (filterDate) {
+        filteredPosts = filteredPosts.filter(post => {
+            const postDate = new Date(post.createdAt).toISOString().split('T')[0];
+            return postDate === filterDate;
+        });
+    }
+    
+    // Filtro por hora
+    if (filterTime) {
+        filteredPosts = filteredPosts.filter(post => {
+            const postTime = new Date(post.createdAt).toTimeString().slice(0, 5);
+            return postTime === filterTime;
+        });
+    }
+    
+    displayPosts(filteredPosts);
+    updatePostCount(filteredPosts.length);
+    
+    if (filteredPosts.length !== posts.length) {
+        showAlert(`Filtro aplicado: ${filteredPosts.length} de ${posts.length} posts`, 'info', 3000);
+    }
+}
+
+function clearFilters() {
+    document.getElementById('filterAuthor').value = '';
+    document.getElementById('filterDate').value = '';
+    document.getElementById('filterTime').value = '';
+    
+    displayPosts(posts);
+    updatePostCount(posts.length);
+    
+    showAlert('Filtros removidos', 'info', 2000);
+}
+
+async function exportData() {
+    try {
+        showLoading(true);
+        const response = await fetch(getApiUrl('export'));
+        
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // Criar arquivo para download
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `posts-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        URL.revokeObjectURL(url);
+        
+        showAlert('Dados exportados com sucesso!', 'success');
+        
+    } catch (error) {
+        console.error('Erro ao exportar dados:', error);
+        showAlert('Erro ao exportar dados: ' + error.message, 'danger');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Funções de UI
+
+function displayPosts(postsArray) {
+    const container = document.getElementById('postsContainer');
+    
+    if (!postsArray || postsArray.length === 0) {
+        displayNoPosts();
+        return;
+    }
+    
+    // Ordenar por data (mais recente primeiro)
+    const sortedPosts = postsArray.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    container.innerHTML = sortedPosts.map(post => createPostHTML(post)).join('');
+}
+
+function createPostHTML(post) {
+    return `
+        <div class="post-item fade-in" data-post-id="${post.id}">
+            <div class="post-header">
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="author-badge">
+                        <i class="bi bi-person me-1"></i>
+                        ${escapeHtml(post.author)}
+                    </span>
+                    <span class="datetime-badge">
+                        <i class="bi bi-clock me-1"></i>
+                        ${formatDateTime(post.createdAt)}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="post-subject">
+                <i class="bi bi-tag me-1"></i>
+                ${escapeHtml(post.subject)}
+            </div>
+            
+            <div class="post-message">
+                ${escapeHtml(post.message)}
+            </div>
+            
+            <div class="post-actions">
+                <button class="btn btn-sm like-btn ${post.liked ? 'liked btn-danger' : 'btn-outline-danger'}" 
+                        onclick="toggleLike(${post.id})">
+                    <i class="bi ${post.liked ? 'bi-heart-fill' : 'bi-heart'} me-1"></i>
+                    ${post.liked ? 'Curtido' : 'Curtir'}
+                </button>
+                
+                <button class="btn btn-sm btn-outline-danger delete-btn" 
+                        onclick="prepareDelete(${post.id})">
+                    <i class="bi bi-trash me-1"></i>
+                    Excluir
+                </button>
+                
+                <small class="text-muted ms-auto">
+                    ID: #${post.id}
+                </small>
+            </div>
+        </div>
+    `;
+}
+
+function displayNoPosts() {
+    const container = document.getElementById('postsContainer');
+    container.innerHTML = `
+        <div class="no-posts">
+            <i class="bi bi-chat-square-text"></i>
+            <h5>Nenhuma postagem encontrada</h5>
+            <p class="text-muted">Seja o primeiro a postar algo!</p>
+        </div>
+    `;
+}
+
+function updatePostCount(count) {
+    document.getElementById('postCount').textContent = count;
+}
+
+function showAlert(message, type = 'info', timeout = 5000) {
+    const alertsContainer = document.getElementById('alerts');
+    const alertId = 'alert_' + Date.now();
+    
+    const alertHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show bounce-in" id="${alertId}" role="alert">
+            ${escapeHtml(message)}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    alertsContainer.insertAdjacentHTML('beforeend', alertHTML);
+    
+    if (timeout) {
+        setTimeout(() => {
+            const alertElement = document.getElementById(alertId);
+            if (alertElement) {
+                const bsAlert = new bootstrap.Alert(alertElement);
+                bsAlert.close();
+            }
+        }, timeout);
+    }
+}
+
+function showLoading(show) {
+    const spinner = document.getElementById('loadingSpinner');
+    if (show) {
+        spinner.style.display = 'block';
+        document.body.classList.add('loading');
+    } else {
+        spinner.style.display = 'none';
+        document.body.classList.remove('loading');
+    }
+}
+
+// Funções utilitárias
+
+function formatDateTime(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHrs = diffMs / (1000 * 60 * 60);
+    
+    if (diffHrs < 1) {
+        const diffMins = Math.floor(diffMs / (1000 * 60));
+        return diffMins === 0 ? 'Agora' : `${diffMins}min atrás`;
+    } else if (diffHrs < 24) {
+        return `${Math.floor(diffHrs)}h atrás`;
+    } else {
+        return date.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+}
+
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Tratamento de erros globais
+window.addEventListener('error', function(event) {
+    console.error('Erro global:', event.error);
+    showAlert('Ocorreu um erro inesperado. Verifique o console para mais detalhes.', 'danger');
+});
+
+// Tratamento de erros de conexão
+window.addEventListener('online', function() {
+    showAlert('Conexão reestabelecida!', 'success', 3000);
+    loadPosts();
+});
+
+window.addEventListener('offline', function() {
+    showAlert('Sem conexão com a internet', 'warning');
+});
