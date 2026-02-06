@@ -1,0 +1,221 @@
+/* Estilos customizados para a aplicação */
+
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border: none;
+    margin-bottom: 1rem;
+}
+
+.post-item {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: white;
+    transition: all 0.3s ease;
+}
+
+.post-item:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.post-meta {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.post-subject {
+    font-weight: bold;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.post-message {
+    color: #212529;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.post-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.like-btn {
+    transition: all 0.3s ease;
+}
+
+.like-btn.liked {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.like-btn.liked:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.delete-btn {
+    transition: all 0.3s ease;
+}
+
+.delete-btn:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.author-badge {
+    background-color: #007bff;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.datetime-badge {
+    background-color: #28a745;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+.no-posts {
+    text-align: center;
+    color: #6c757d;
+    padding: 3rem;
+}
+
+.no-posts i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Animações */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.bounce-in {
+    animation: bounceIn 0.6s ease;
+}
+
+@keyframes bounceIn {
+    0% { transform: scale(0.3); opacity: 0; }
+    50% { transform: scale(1.05); }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Estados de loading */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .post-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .post-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .author-badge, .datetime-badge {
+        font-size: 0.75rem;
+    }
+}
+
+/* Alertas customizados */
+.alert {
+    border: none;
+    border-radius: 8px;
+}
+
+.alert-success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #842029;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    color: #055160;
+}
+
+/* Navbar customizada */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+/* Cards com gradiente sutil */
+.card-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.card-header h4, .card-header h5 {
+    color: white;
+}
+
+/* Estilo para o preview do post no modal */
+#postPreview {
+    font-size: 0.9rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Melhorias nos botões */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
