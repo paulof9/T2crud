@@ -1,292 +1,154 @@
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs').promises;
+const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data.json');
+const porta = 3000;
+const arquivo = path.join(__dirname, 'data.json');
 
-// middleware
+// middleware básico
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// middleware para logs
-app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-    next();
-});
-
-// função para carregar dados
-async function loadData() {
+// funções para carregar e salvar dados
+function carregarDados() {
     try {
-        const data = await fs.readFile(DATA_FILE, 'utf8');
-        return JSON.parse(data);
+        const dados = fs.readFileSync(arquivo, 'utf8');
+        return JSON.parse(dados);
     } catch (error) {
-        // se arquivo não existe, criar estrutura inicial
-        const initialData = {
+        // se arquivo não existe, criar dados iniciais
+        const dadosIniciais = {
             posts: [],
-            lastId: 0,
-            meta: {
-                created: new Date().toISOString(),
-                lastModified: new Date().toISOString(),
-                totalPosts: 0
-            }
+            ultimoId: 0
         };
-        await saveData(initialData);
-        return initialData;
+        salvarDados(dadosIniciais);
+        return dadosIniciais;
     }
 }
 
-// função para salvar dados
-async function saveData(data) {
+function salvarDados(dados) {
     try {
-        data.meta.lastModified = new Date().toISOString();
-        data.meta.totalPosts = data.posts.length;
-        await fs.writeFile(DATA_FILE, JSON.stringify(data, null, 2));
+        fs.writeFileSync(arquivo, JSON.stringify(dados, null, 2));
         return true;
     } catch (error) {
-        console.error('Erro ao salvar dados:', error);
+        console.error('Erro ao salvar:', error);
         return false;
     }
 }
 
 // ROTAS DA API
 
-// GET /api/posts - listar todas as postagens
-app.get('/api/posts', async (req, res) => {
-    try {
-        const data = await loadData();
-        const { author, date, time } = req.query;
-        
-        let posts = data.posts;
-        
-        // filtros opcionais
-        if (author) {
-            posts = posts.filter(post => 
-                post.author.toLowerCase().includes(author.toLowerCase())
-            );
-        }
-        
-        if (date) {
-            posts = posts.filter(post => 
-                new Date(post.createdAt).toISOString().split('T')[0] === date
-            );
-        }
-        
-        if (time) {
-            posts = posts.filter(post => 
-                new Date(post.createdAt).toTimeString().slice(0, 5) === time
-            );
-        }
-        
-        // ordenar por data (mais recente primeiro)
-        posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        
-        res.json(posts);
-    } catch (error) {
-        console.error('Erro ao buscar posts:', error);
-        res.status(500).json({ 
-            error: 'Erro interno do servidor',
-            message: error.message 
+// GET /api/posts - listar postagens
+app.get('/api/posts', (req, res) => {
+    const dados = carregarDados();
+    let posts = dados.posts;
+    
+    // filtros simples
+    const { author, date, time } = req.query;
+    
+    if (author) {
+        posts = posts.filter(post => 
+            post.author.toLowerCase().includes(author.toLowerCase())
+        );
+    }
+    
+    if (date) {
+        posts = posts.filter(post => 
+            post.createdAt.split('T')[0] === date
+        );
+    }
+    
+    if (time) {
+        posts = posts.filter(post => 
+            post.createdAt.split('T')[1].slice(0, 5) === time
+        );
+    }
+    
+    // ordenar por data
+    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    res.json(posts);
+});
+
+// POST /api/posts - criar postagem
+app.post('/api/posts', (req, res) => {
+    const { author, subject, message } = req.body;
+    
+    // validação básica
+    if (!author || !subject || !message) {
+        return res.status(400).json({
+            error: 'Preencha todos os campos'
         });
+    }
+    
+    const dados = carregarDados();
+    
+    // criar nova postagem
+    const novaPostagem = {
+        id: ++dados.ultimoId,
+        author: author.trim(),
+        subject: subject.trim(),
+        message: message.trim(),
+        createdAt: new Date().toISOString(),
+        liked: false
+    };
+    
+    dados.posts.push(novaPostagem);
+    
+    if (salvarDados(dados)) {
+        res.status(201).json(novaPostagem);
+    } else {
+        res.status(500).json({ error: 'Erro ao salvar' });
     }
 });
 
-// POST /api/posts - criar nova postagem
-app.post('/api/posts', async (req, res) => {
-    try {
-        const { author, subject, message } = req.body;
-        
-        // validação
-        if (!author || !subject || !message) {
-            return res.status(400).json({
-                error: 'Dados inválidos',
-                message: 'Autor, assunto e mensagem são obrigatórios'
-            });
-        }
-        
-        if (author.trim().length < 2) {
-            return res.status(400).json({
-                error: 'Autor inválido',
-                message: 'Nome do autor deve ter pelo menos 2 caracteres'
-            });
-        }
-        
-        if (subject.trim().length < 3) {
-            return res.status(400).json({
-                error: 'Assunto inválido',
-                message: 'Assunto deve ter pelo menos 3 caracteres'
-            });
-        }
-        
-        if (message.trim().length < 5) {
-            return res.status(400).json({
-                error: 'Mensagem inválida',
-                message: 'Mensagem deve ter pelo menos 5 caracteres'
-            });
-        }
-        
-        const data = await loadData();
-        
-        // criar nova postagem
-        const newPost = {
-            id: ++data.lastId,
-            author: author.trim(),
-            subject: subject.trim(),
-            message: message.trim(),
-            createdAt: new Date().toISOString(),
-            liked: false
-        };
-        
-        data.posts.push(newPost);
-        
-        // salvar dados
-        const saved = await saveData(data);
-        if (!saved) {
-            return res.status(500).json({
-                error: 'Erro ao salvar',
-                message: 'Não foi possível salvar a postagem'
-            });
-        }
-        
-        console.log(`Nova postagem criada: ID ${newPost.id} por ${newPost.author}`);
-        res.status(201).json(newPost);
-        
-    } catch (error) {
-        console.error('Erro ao criar post:', error);
-        res.status(500).json({
-            error: 'Erro interno do servidor',
-            message: error.message
-        });
-    }
-});
-
-// GET /api/posts/:id - buscar postagem específica
-app.get('/api/posts/:id', async (req, res) => {
-    try {
-        const postId = parseInt(req.params.id);
-        
-        if (isNaN(postId)) {
-            return res.status(400).json({
-                error: 'ID inválido',
-                message: 'ID deve ser um número'
-            });
-        }
-        
-        const data = await loadData();
-        const post = data.posts.find(p => p.id === postId);
-        
-        if (!post) {
-            return res.status(404).json({
-                error: 'Postagem não encontrada',
-                message: `Nenhuma postagem com ID ${postId}`
-            });
-        }
-        
+// GET /api/posts/:id - buscar postagem por id
+app.get('/api/posts/:id', (req, res) => {
+    const dados = carregarDados();
+    const post = dados.posts.find(p => p.id == req.params.id);
+    
+    if (post) {
         res.json(post);
-    } catch (error) {
-        console.error('Erro ao buscar post:', error);
-        res.status(500).json({
-            error: 'Erro interno do servidor',
-            message: error.message
-        });
+    } else {
+        res.status(404).json({ error: 'Postagem não encontrada' });
     }
 });
 
-// PATCH /api/posts/:id/like - curtir/descurtir postagem
-app.patch('/api/posts/:id/like', async (req, res) => {
-    try {
-        const postId = parseInt(req.params.id);
-        
-        if (isNaN(postId)) {
-            return res.status(400).json({
-                error: 'ID inválido',
-                message: 'ID deve ser um número'
-            });
-        }
-        
-        const data = await loadData();
-        const postIndex = data.posts.findIndex(p => p.id === postId);
-        
-        if (postIndex === -1) {
-            return res.status(404).json({
-                error: 'Postagem não encontrada',
-                message: `Nenhuma postagem com ID ${postId}`
-            });
-        }
-        
-        // alternar status de curtida
-        data.posts[postIndex].liked = !data.posts[postIndex].liked;
-        
-        // salvar dados
-        const saved = await saveData(data);
-        if (!saved) {
-            return res.status(500).json({
-                error: 'Erro ao salvar',
-                message: 'Não foi possível atualizar a postagem'
-            });
-        }
-        
-        console.log(`Post ${postId} ${data.posts[postIndex].liked ? 'curtido' : 'descurtido'}`);
-        res.json(data.posts[postIndex]);
-        
-    } catch (error) {
-        console.error('Erro ao curtir post:', error);
-        res.status(500).json({
-            error: 'Erro interno do servidor',
-            message: error.message
-        });
+// PATCH /api/posts/:id/like - curtir postagem
+app.patch('/api/posts/:id/like', (req, res) => {
+    const dados = carregarDados();
+    const post = dados.posts.find(p => p.id == req.params.id);
+    
+    if (!post) {
+        return res.status(404).json({ error: 'Postagem não encontrada' });
+    }
+    
+    post.liked = !post.liked;
+    
+    if (salvarDados(dados)) {
+        res.json(post);
+    } else {
+        res.status(500).json({ error: 'Erro ao salvar' });
     }
 });
 
 // DELETE /api/posts/:id - excluir postagem
-app.delete('/api/posts/:id', async (req, res) => {
-    try {
-        const postId = parseInt(req.params.id);
-        
-        if (isNaN(postId)) {
-            return res.status(400).json({
-                error: 'ID inválido',
-                message: 'ID deve ser um número'
-            });
-        }
-        
-        const data = await loadData();
-        const postIndex = data.posts.findIndex(p => p.id === postId);
-        
-        if (postIndex === -1) {
-            return res.status(404).json({
-                error: 'Postagem não encontrada',
-                message: `Nenhuma postagem com ID ${postId}`
-            });
-        }
-        
-        // remover postagem
-        const deletedPost = data.posts.splice(postIndex, 1)[0];
-        
-        // salvar dados
-        const saved = await saveData(data);
-        if (!saved) {
-            return res.status(500).json({
-                error: 'Erro ao salvar',
-                message: 'Não foi possível excluir a postagem'
-            });
-        }
-        
-        console.log(`Postagem excluída: ID ${postId} por ${deletedPost.author}`);
-        res.json({ 
-            message: 'Postagem excluída com sucesso',
-            deletedPost 
-        });
-        
-    } catch (error) {
-        console.error('Erro ao excluir post:', error);
-        res.status(500).json({
-            error: 'Erro interno do servidor',
-            message: error.message
-        });
+app.delete('/api/posts/:id', (req, res) => {
+    const dados = carregarDados();
+    const index = dados.posts.findIndex(p => p.id == req.params.id);
+    
+    if (index === -1) {
+        return res.status(404).json({ error: 'Postagem não encontrada' });
+    }
+    
+    const postExcluido = dados.posts.splice(index, 1)[0];
+    
+    if (salvarDados(dados)) {
+        res.json({ message: 'Postagem excluída', post: postExcluido });
+    } else {
+        res.status(500).json({ error: 'Erro ao salvar' });
     }
 });
 
@@ -340,24 +202,8 @@ app.use((error, req, res, next) => {
     });
 });
 
-// inicializar servidor
-async function startServer() {
-    try {
-        // verificar/criar arquivo de dados
-        await loadData();
-        console.log('Base de dados inicializada');
-        
-        // iniciar servidor
-        app.listen(PORT, () => {
-            console.log(`Servidor rodando na porta ${PORT}`);
-        });
-        
-    } catch (error) {
-        console.error('Erro ao iniciar servidor:', error);
-        process.exit(1);
-    }
-}
-
-
-// inicializar aplicação
-startServer();
+// iniciar servidor
+app.listen(porta, () => {
+    console.log('Base de dados inicializada');
+    console.log(`Servidor rodando na porta ${porta}`);
+});
