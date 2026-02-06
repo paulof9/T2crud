@@ -31,6 +31,7 @@ function carregarDados() {
 function salvarDados(dados) {
     try {
         fs.writeFileSync(arquivo, JSON.stringify(dados, null, 2));
+        console.log('Dados salvos com sucesso:', dados);
         return true;
     } catch (error) {
         console.error('Erro ao salvar:', error);
