@@ -1,52 +1,52 @@
-// Variáveis globais
+// variáveis globais
 let posts = [];
 let currentDeleteId = null;
 let deleteModal = null;
 
-// Inicialização
+// inicialização
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
 });
 
 function initializeApp() {
-    // Inicializar modal
+    // inicializar modal
     deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
     
-    // Event listeners
+    // event listeners
     setupEventListeners();
     
-    // Carregar posts iniciais
+    // carregar posts iniciais
     loadPosts();
     
-    // Auto-refresh a cada 30 segundos
+    // auto-refresh a cada 30 segundos
     setInterval(loadPosts, 30000);
 }
 
 function setupEventListeners() {
-    // Formulário de nova postagem
+    // formulário de nova postagem
     document.getElementById('postForm').addEventListener('submit', handleSubmitPost);
     
-    // Botões de filtro
+    // botões de filtro
     document.getElementById('applyFilters').addEventListener('click', applyFilters);
     document.getElementById('clearFilters').addEventListener('click', clearFilters);
     
-    // Botões de ação
+    // botões de ação
     document.getElementById('refreshBtn').addEventListener('click', loadPosts);
     document.getElementById('exportBtn').addEventListener('click', exportData);
     document.getElementById('confirmDeleteBtn').addEventListener('click', confirmDelete);
     
-    // Filtros em tempo real
+    // filtros em tempo real
     document.getElementById('filterAuthor').addEventListener('input', debounce(applyFilters, 300));
     document.getElementById('filterDate').addEventListener('change', applyFilters);
     document.getElementById('filterTime').addEventListener('change', applyFilters);
 }
 
-// Funções principais
+// funções principais
 
 async function loadPosts() {
     try {
         showLoading(true);
-        const response = await fetch(getApiUrl('posts'));
+        const response = await fetch('http://localhost:3000/api/posts');
         
         if (!response.ok) {
             throw new Error(`Erro ${response.status}: ${response.statusText}`);
@@ -75,7 +75,7 @@ async function handleSubmitPost(event) {
         message: document.getElementById('message').value.trim()
     };
     
-    // Validação
+    // validação
     if (!postData.author || !postData.subject || !postData.message) {
         showAlert('Preencha todos os campos!', 'danger');
         return;
@@ -83,9 +83,12 @@ async function handleSubmitPost(event) {
     
     try {
         showLoading(true);
-        const response = await fetch(getApiUrl('posts'), {
+        const response = await fetch('http://localhost:3000/api/posts', {
             method: 'POST',
-            headers: defaultHeaders,
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify(postData)
         });
         
@@ -95,10 +98,10 @@ async function handleSubmitPost(event) {
         
         const newPost = await response.json();
         
-        // Limpar formulário
+        // limpar formulário
         document.getElementById('postForm').reset();
         
-        // Recarregar posts
+        // recarregar posts
         await loadPosts();
         
         showAlert('Postagem criada com sucesso!', 'success');
@@ -113,9 +116,12 @@ async function handleSubmitPost(event) {
 
 async function toggleLike(postId) {
     try {
-        const response = await fetch(`${getApiUrl('posts')}/${postId}/like`, {
+        const response = await fetch(`http://localhost:3000/api/posts/${postId}/like`, {
             method: 'PATCH',
-            headers: defaultHeaders
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
         });
         
         if (!response.ok) {
@@ -124,7 +130,7 @@ async function toggleLike(postId) {
         
         const updatedPost = await response.json();
         
-        // Atualizar post local
+        // atualizar post local
         const postIndex = posts.findIndex(p => p.id === postId);
         if (postIndex !== -1) {
             posts[postIndex] = updatedPost;
@@ -145,7 +151,7 @@ function prepareDelete(postId) {
     
     currentDeleteId = postId;
     
-    // Mostrar preview no modal
+    // mostrar preview no modal
     document.getElementById('postPreview').innerHTML = `
         <strong>Autor:</strong> ${post.author}<br>
         <strong>Assunto:</strong> ${post.subject}<br>
@@ -161,9 +167,12 @@ async function confirmDelete() {
     
     try {
         showLoading(true);
-        const response = await fetch(`${getApiUrl('posts')}/${currentDeleteId}`, {
+        const response = await fetch(`http://localhost:3000/api/posts/${currentDeleteId}`, {
             method: 'DELETE',
-            headers: defaultHeaders
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
         });
         
         if (!response.ok) {
@@ -173,7 +182,7 @@ async function confirmDelete() {
         deleteModal.hide();
         currentDeleteId = null;
         
-        // Recarregar posts
+        // recarregar posts
         await loadPosts();
         
         showAlert('Postagem excluída com sucesso!', 'success');
@@ -193,14 +202,14 @@ function applyFilters() {
     
     let filteredPosts = [...posts];
     
-    // Filtro por autor
+    // filtro por autor
     if (filterAuthor) {
         filteredPosts = filteredPosts.filter(post => 
             post.author.toLowerCase().includes(filterAuthor)
         );
     }
     
-    // Filtro por data
+    // filtro por data
     if (filterDate) {
         filteredPosts = filteredPosts.filter(post => {
             const postDate = new Date(post.createdAt).toISOString().split('T')[0];
@@ -208,7 +217,7 @@ function applyFilters() {
         });
     }
     
-    // Filtro por hora
+    // filtro por hora
     if (filterTime) {
         filteredPosts = filteredPosts.filter(post => {
             const postTime = new Date(post.createdAt).toTimeString().slice(0, 5);
@@ -238,7 +247,7 @@ function clearFilters() {
 async function exportData() {
     try {
         showLoading(true);
-        const response = await fetch(getApiUrl('export'));
+        const response = await fetch('http://localhost:3000/api/export');
         
         if (!response.ok) {
             throw new Error(`Erro ${response.status}: ${response.statusText}`);
@@ -246,7 +255,7 @@ async function exportData() {
         
         const data = await response.json();
         
-        // Criar arquivo para download
+        // criar arquivo para download
         const dataStr = JSON.stringify(data, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(dataBlob);
@@ -270,7 +279,7 @@ async function exportData() {
     }
 }
 
-// Funções de UI
+// funções de UI
 
 function displayPosts(postsArray) {
     const container = document.getElementById('postsContainer');
@@ -280,7 +289,7 @@ function displayPosts(postsArray) {
         return;
     }
     
-    // Ordenar por data (mais recente primeiro)
+    // ordenar por data (mais recente primeiro)
     const sortedPosts = postsArray.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     container.innerHTML = sortedPosts.map(post => createPostHTML(post)).join('');
@@ -382,7 +391,7 @@ function showLoading(show) {
     }
 }
 
-// Funções utilitárias
+// funções auxiliares
 
 function formatDateTime(dateString) {
     const date = new Date(dateString);
@@ -429,13 +438,13 @@ function debounce(func, wait) {
     };
 }
 
-// Tratamento de erros globais
+// tratamento de erros globais
 window.addEventListener('error', function(event) {
     console.error('Erro global:', event.error);
     showAlert('Ocorreu um erro inesperado. Verifique o console para mais detalhes.', 'danger');
 });
 
-// Tratamento de erros de conexão
+// tratamento de erros de conexão
 window.addEventListener('online', function() {
     showAlert('Conexão reestabelecida!', 'success', 3000);
     loadPosts();

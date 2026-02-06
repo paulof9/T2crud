@@ -7,24 +7,24 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data.json');
 
-// Middleware
+// middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Middleware para logs
+// middleware para logs
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
 });
 
-// Função para carregar dados
+// função para carregar dados
 async function loadData() {
     try {
         const data = await fs.readFile(DATA_FILE, 'utf8');
         return JSON.parse(data);
     } catch (error) {
-        // Se arquivo não existe, criar estrutura inicial
+        // se arquivo não existe, criar estrutura inicial
         const initialData = {
             posts: [],
             lastId: 0,
@@ -39,7 +39,7 @@ async function loadData() {
     }
 }
 
-// Função para salvar dados
+// função para salvar dados
 async function saveData(data) {
     try {
         data.meta.lastModified = new Date().toISOString();
@@ -54,7 +54,7 @@ async function saveData(data) {
 
 // ROTAS DA API
 
-// GET /api/posts - Listar todas as postagens
+// GET /api/posts - listar todas as postagens
 app.get('/api/posts', async (req, res) => {
     try {
         const data = await loadData();
@@ -62,7 +62,7 @@ app.get('/api/posts', async (req, res) => {
         
         let posts = data.posts;
         
-        // Filtros opcionais
+        // filtros opcionais
         if (author) {
             posts = posts.filter(post => 
                 post.author.toLowerCase().includes(author.toLowerCase())
@@ -81,7 +81,7 @@ app.get('/api/posts', async (req, res) => {
             );
         }
         
-        // Ordenar por data (mais recente primeiro)
+        // ordenar por data (mais recente primeiro)
         posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         
         res.json(posts);
@@ -94,12 +94,12 @@ app.get('/api/posts', async (req, res) => {
     }
 });
 
-// POST /api/posts - Criar nova postagem
+// POST /api/posts - criar nova postagem
 app.post('/api/posts', async (req, res) => {
     try {
         const { author, subject, message } = req.body;
         
-        // Validação
+        // validação
         if (!author || !subject || !message) {
             return res.status(400).json({
                 error: 'Dados inválidos',
@@ -130,7 +130,7 @@ app.post('/api/posts', async (req, res) => {
         
         const data = await loadData();
         
-        // Criar nova postagem
+        // criar nova postagem
         const newPost = {
             id: ++data.lastId,
             author: author.trim(),
@@ -142,7 +142,7 @@ app.post('/api/posts', async (req, res) => {
         
         data.posts.push(newPost);
         
-        // Salvar dados
+        // salvar dados
         const saved = await saveData(data);
         if (!saved) {
             return res.status(500).json({
@@ -163,7 +163,7 @@ app.post('/api/posts', async (req, res) => {
     }
 });
 
-// GET /api/posts/:id - Buscar postagem específica
+// GET /api/posts/:id - buscar postagem específica
 app.get('/api/posts/:id', async (req, res) => {
     try {
         const postId = parseInt(req.params.id);
@@ -195,7 +195,7 @@ app.get('/api/posts/:id', async (req, res) => {
     }
 });
 
-// PATCH /api/posts/:id/like - Curtir/descurtir postagem
+// PATCH /api/posts/:id/like - curtir/descurtir postagem
 app.patch('/api/posts/:id/like', async (req, res) => {
     try {
         const postId = parseInt(req.params.id);
@@ -217,10 +217,10 @@ app.patch('/api/posts/:id/like', async (req, res) => {
             });
         }
         
-        // Alternar status de curtida
+        // alternar status de curtida
         data.posts[postIndex].liked = !data.posts[postIndex].liked;
         
-        // Salvar dados
+        // salvar dados
         const saved = await saveData(data);
         if (!saved) {
             return res.status(500).json({
@@ -241,7 +241,7 @@ app.patch('/api/posts/:id/like', async (req, res) => {
     }
 });
 
-// DELETE /api/posts/:id - Excluir postagem
+// DELETE /api/posts/:id - excluir postagem
 app.delete('/api/posts/:id', async (req, res) => {
     try {
         const postId = parseInt(req.params.id);
@@ -263,10 +263,10 @@ app.delete('/api/posts/:id', async (req, res) => {
             });
         }
         
-        // Remover postagem
+        // remover postagem
         const deletedPost = data.posts.splice(postIndex, 1)[0];
         
-        // Salvar dados
+        // salvar dados
         const saved = await saveData(data);
         if (!saved) {
             return res.status(500).json({
@@ -290,12 +290,12 @@ app.delete('/api/posts/:id', async (req, res) => {
     }
 });
 
-// GET /api/export - Exportar todos os dados em JSON
+// GET /api/export - exportar todos os dados em JSON
 app.get('/api/export', async (req, res) => {
     try {
         const data = await loadData();
         
-        // Adicionar estatísticas
+        // adicionar estatísticas
         const exportData = {
             ...data,
             statistics: {
@@ -306,7 +306,7 @@ app.get('/api/export', async (req, res) => {
             }
         };
         
-        // Headers para download
+        // headers para download
         res.setHeader('Content-Disposition', `attachment; filename="posts-export-${new Date().toISOString().split('T')[0]}.json"`);
         res.setHeader('Content-Type', 'application/json');
         
@@ -322,7 +322,7 @@ app.get('/api/export', async (req, res) => {
     }
 });
 
-// Rota de health check
+// rota de health check
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'OK',
@@ -332,7 +332,7 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Middleware para rotas não encontradas
+// middleware para rotas não encontradas
 app.use((req, res) => {
     res.status(404).json({
         error: 'Rota não encontrada',
@@ -340,7 +340,7 @@ app.use((req, res) => {
     });
 });
 
-// Middleware para tratamento de erros
+// middleware para tratamento de erros
 app.use((error, req, res, next) => {
     console.error('Erro não tratado:', error);
     res.status(500).json({
@@ -349,38 +349,34 @@ app.use((error, req, res, next) => {
     });
 });
 
-// Inicializar servidor
+// inicializar servidor
 async function startServer() {
     try {
-        // Verificar/criar arquivo de dados
+        // verificar/criar arquivo de dados
         await loadData();
-        console.log('✅ Base de dados inicializada');
+        console.log('Base de dados inicializada');
         
-        // Iniciar servidor
+        // iniciar servidor
         app.listen(PORT, () => {
-            console.log(`🚀 Servidor rodando na porta ${PORT}`);
-            console.log(`📡 API disponível em: http://localhost:${PORT}/api`);
-            console.log(`💾 Dados salvos em: ${DATA_FILE}`);
-            console.log(`🏥 Health check: http://localhost:${PORT}/api/health`);
-            console.log('---');
+            console.log(`Servidor rodando na porta ${PORT}`);
         });
         
     } catch (error) {
-        console.error('❌ Erro ao iniciar servidor:', error);
+        console.error('Erro ao iniciar servidor:', error);
         process.exit(1);
     }
 }
 
-// Tratamento de sinais para encerramento graceful
+// tratamento de sinais para encerramento graceful
 process.on('SIGTERM', () => {
-    console.log('📦 Encerrando servidor graciosamente...');
+    console.log('Encerrando servidor...');
     process.exit(0);
 });
 
 process.on('SIGINT', () => {
-    console.log('📦 Encerrando servidor graciosamente...');
+    console.log('Encerrando servidor...');
     process.exit(0);
 });
 
-// Inicializar aplicação
+// inicializar aplicação
 startServer();

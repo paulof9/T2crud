@@ -56,19 +56,18 @@ git checkout frontend
 
 ## 🔧 Estrutura do Projeto
 
-### Backend (Branch: main)
+### Backend (Branch: main - após merge)
 ```
 ├── server.js          # Servidor Express principal
 ├── data.json          # Base de dados local
 └── package.json       # Configurações e dependências
 ```
 
-### Frontend (Branch: frontend)
+### Frontend (Branch: main - após merge)
 ```
 ├── index.html         # Página principal
 ├── style.css          # Estilos customizados
-├── script.js          # JavaScript para interações
-└── config.js          # Configuração da API
+└── script.js          # JavaScript para interações
 ```
 
 ## 📡 API Endpoints
