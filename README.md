@@ -80,7 +80,6 @@ git checkout frontend
 | PATCH | `/api/posts/:id/like` | Curtir/descurtir postagem |
 | DELETE | `/api/posts/:id` | Exclui postagem |
 | GET | `/api/export` | Exporta dados em JSON |
-| GET | `/api/health` | Status do servidor |
 
 ### Query Parameters (Filtros)
 - `author`: Filtrar por autor
@@ -170,6 +169,5 @@ git checkout frontend
 ## 🚦 Status do Servidor
 
 O servidor roda na porta **3000** por padrão. Acesse:
-- 🏥 Health Check: `http://localhost:3000/api/health`
 - 📊 Lista Posts: `http://localhost:3000/api/posts`
 - 📥 Exportar: `http://localhost:3000/api/export`

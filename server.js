@@ -322,15 +322,6 @@ app.get('/api/export', async (req, res) => {
     }
 });
 
-// rota de health check
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        version: require('./package.json').version
-    });
-});
 
 // middleware para rotas não encontradas
 app.use((req, res) => {
@@ -367,16 +358,6 @@ async function startServer() {
     }
 }
 
-// tratamento de sinais para encerramento graceful
-process.on('SIGTERM', () => {
-    console.log('Encerrando servidor...');
-    process.exit(0);
-});
-
-process.on('SIGINT', () => {
-    console.log('Encerrando servidor...');
-    process.exit(0);
-});
 
 // inicializar aplicação
 startServer();

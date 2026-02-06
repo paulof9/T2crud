@@ -297,7 +297,7 @@ function displayPosts(postsArray) {
 
 function createPostHTML(post) {
     return `
-        <div class="post-item fade-in" data-post-id="${post.id}">
+        <div class="post-item" data-post-id="${post.id}">
             <div class="post-header">
                 <div class="d-flex gap-2 flex-wrap">
                     <span class="author-badge">
@@ -361,7 +361,7 @@ function showAlert(message, type = 'info', timeout = 5000) {
     const alertId = 'alert_' + Date.now();
     
     const alertHTML = `
-        <div class="alert alert-${type} alert-dismissible fade show bounce-in" id="${alertId}" role="alert">
+        <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}" role="alert">
             ${escapeHtml(message)}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
@@ -416,14 +416,9 @@ function formatDateTime(dateString) {
 }
 
 function escapeHtml(text) {
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 function debounce(func, wait) {
@@ -437,19 +432,3 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
-
-// tratamento de erros globais
-window.addEventListener('error', function(event) {
-    console.error('Erro global:', event.error);
-    showAlert('Ocorreu um erro inesperado. Verifique o console para mais detalhes.', 'danger');
-});
-
-// tratamento de erros de conexão
-window.addEventListener('online', function() {
-    showAlert('Conexão reestabelecida!', 'success', 3000);
-    loadPosts();
-});
-
-window.addEventListener('offline', function() {
-    showAlert('Sem conexão com a internet', 'warning');
-});
