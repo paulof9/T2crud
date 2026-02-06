@@ -333,7 +333,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Middleware para rotas não encontradas
-app.use('*', (req, res) => {
+app.use((req, res) => {
     res.status(404).json({
         error: 'Rota não encontrada',
         message: `A rota ${req.originalUrl} não existe nesta API`
