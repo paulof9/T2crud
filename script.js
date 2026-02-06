@@ -237,8 +237,6 @@ function criarHtmlPost(post) {
                         onclick="prepararDelete(${post.id})">
                     Excluir
                 </button>
-                
-                <small class="text-muted">ID: #${post.id}</small>
             </div>
         </div>
     `;
