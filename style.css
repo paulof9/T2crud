@@ -1,5 +1,3 @@
-/* Estilos customizados para a aplicação */
-
 body {
     background-color: #f8f9fa;
 }
@@ -110,7 +108,7 @@ body {
     opacity: 0.5;
 }
 
-/* Estados de loading */
+/* estados de loading */
 .loading {
     opacity: 0.6;
     pointer-events: none;
@@ -121,7 +119,7 @@ body {
     height: 1rem;
 }
 
-/* Responsividade */
+/* responsividade */
 @media (max-width: 768px) {
     .post-header {
         flex-direction: column;
@@ -139,7 +137,7 @@ body {
     }
 }
 
-/* Alertas customizados */
+/* alertas customizados */
 .alert {
     border: none;
     border-radius: 8px;
@@ -160,13 +158,13 @@ body {
     color: #055160;
 }
 
-/* Navbar customizada */
+/* navbar customizada */
 .navbar-brand {
     font-weight: bold;
     font-size: 1.5rem;
 }
 
-/* Cards com gradiente sutil */
+/* cards */
 .card-header {
     background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
     color: white;
@@ -177,14 +175,14 @@ body {
     color: white;
 }
 
-/* Estilo para o preview do post no modal */
+/* estilo para o preview do post no modal */
 #postPreview {
     font-size: 0.9rem;
     max-height: 200px;
     overflow-y: auto;
 }
 
-/* Melhorias nos botões */
+/* melhorias nos botões */
 .btn {
     border-radius: 6px;
     font-weight: 500;
